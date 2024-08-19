@@ -1,0 +1,47 @@
+use crate::parse::ASTNode;
+
+fn _compile(node: ASTNode) -> String {
+    let mut result = String::new();
+
+    match node {
+        ASTNode::FunctionDeclaration(_ty, name, inner) => {
+            result.push_str(&format!("{name}:\n")); // Setup a label
+            result.push_str("push rbp\n"); // Save rbp, we are going to override it
+            result.push_str("mov rbp, rsp\n"); // Set rbp to the current stack address to keep a base to reference variables off of
+
+            // Compile the body
+            result.push_str(&compile_list(inner));
+        }
+        ASTNode::Return(value) => {
+            result.push_str(&format!("mov eax, {}\n", _compile(*value)));
+            result.push_str("pop rbp\n"); // Load the original rbp off of the stack
+            result.push_str("ret\n"); // Return to previous function
+        }
+        ASTNode::IntValue(value) => result.push_str(&format!("{value}")),
+        ASTNode::FloatValue(_) => todo!(),
+    }
+    result
+}
+
+pub fn compile_list(ast: Vec<ASTNode>) -> String {
+    let mut result = String::new();
+
+    for node in ast {
+        result.push_str(&_compile(node));
+    }
+
+    result
+}
+
+/// TODO: Remove the need for an assembler, directly compile to ML
+pub fn compile(ast: Vec<ASTNode>) -> String {
+    let mut result = String::new();
+
+    result.push_str("[bits 64]\nsection .text\nglobal _start\n_start:\ncall main\nmov rdi, rax\nmov rax, 60\nsyscall\n");
+
+    for node in ast {
+        result.push_str(&_compile(node));
+    }
+
+    result
+}
