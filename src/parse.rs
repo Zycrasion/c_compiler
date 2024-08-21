@@ -1,4 +1,4 @@
-use std::{cell::Ref, collections::HashMap, iter::Peekable, slice::Iter};
+use std::{cell::Ref, collections::HashMap, iter::Peekable, slice::Iter, u32};
 
 use crate::tokenise::Token;
 
@@ -10,7 +10,7 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn number_of_bytes(&self) -> u8 {
+    pub fn bytes(&self) -> u32 {
         match self {
             Type::VOID => 0,
             Type::INT | Type::FLOAT => 4,
@@ -42,8 +42,9 @@ impl From<&String> for Type {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ASTNode {
     FunctionDeclaration(Type, String, Vec<ASTNode>),
-    VariableDeclaration(Type, Box<ASTNode>),
-    VariableReference(u8),
+    VariableDeclaration(Type, String, Box<ASTNode>, u32),
+    VariableReference(u32),
+    StringLiteral(String),
     Return(Box<ASTNode>),
     IntValue(i32),
     FloatValue(f32),
@@ -52,16 +53,10 @@ pub enum ASTNode {
 fn _parse(
     token: &Token,
     tokens: &mut Peekable<Iter<Token>>,
-    variable_references: &mut HashMap<String, u8>,
 ) -> Option<ASTNode> {
     match token {
         Token::StringLiteral(string) => {
-            if let Some(offset) = variable_references.get(string) {
-                return Some(ASTNode::VariableReference(*offset));
-            }
-
-            eprintln!("Error: Wasn't expecting string literal {string}");
-            None
+            Some(ASTNode::StringLiteral(string.clone()))
         }
         Token::Int(value) => Some(ASTNode::IntValue(*value)),
         Token::Float(value) => Some(ASTNode::FloatValue(*value)),
@@ -81,21 +76,11 @@ fn _parse(
                 if Token::Punctuation('=') == *token {
                     // Variable Declaration
                     let value =
-                        _parse(tokens.next().unwrap(), tokens, variable_references).unwrap();
+                        _parse(tokens.next().unwrap(), tokens).unwrap();
 
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
 
-                    if variable_references.contains_key(name) {
-                        eprintln!("Error: variable already set");
-                    } else {
-                        *variable_references.get_mut(&"&stack".to_string()).unwrap() += ty.number_of_bytes();
-                        variable_references.insert(
-                            name.clone(),
-                            *variable_references.get(&"&stack".to_string()).unwrap(),
-                        );
-                    }
-
-                    Some(ASTNode::VariableDeclaration(ty, Box::new(value)))
+                    Some(ASTNode::VariableDeclaration(ty, name.clone(), Box::new(value), u32::MAX))
                 } else if Token::Punctuation('(') == *token {
                     // Function Decleration
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation(')'));
@@ -108,7 +93,7 @@ fn _parse(
                             break;
                         }
 
-                        internal_nodes.push(_parse(tk, tokens, variable_references).unwrap())
+                        internal_nodes.push(_parse(tk, tokens).unwrap())
                     }
 
                     Some(ASTNode::FunctionDeclaration(
@@ -129,7 +114,6 @@ fn _parse(
                         panic!()
                     },
                     tokens,
-                    variable_references,
                 )
                 .unwrap();
 
@@ -153,11 +137,9 @@ pub fn parse(tokens: Vec<Token>) -> Vec<ASTNode> {
     let mut nodes = vec![];
 
     let mut tokens = tokens.iter().peekable();
-    let mut variable_references = HashMap::new();
-    variable_references.insert("&stack".to_string(), 0);
 
     while let Some(token) = tokens.next() {
-        nodes.push(_parse(token, &mut tokens, &mut variable_references).unwrap())
+        nodes.push(_parse(token, &mut tokens).unwrap())
     }
 
     nodes

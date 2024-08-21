@@ -1,12 +1,13 @@
 use std::{fs::{File, OpenOptions}, io::Write, process::Command};
 
-use c_compiler::{compile::compile, parse::parse, tokenise::tokenise};
+use c_compiler::{compile::compile, parse::parse, tokenise::tokenise, variable_pass::variable_pass};
 
 fn main()
 {
     let tokens = tokenise(include_str!("../c_test_files/02.c"));
-    println!("{:#?}", tokens);
-    let nodes = parse(tokens);
+    // println!("{:#?}", tokens);
+    let mut nodes = parse(tokens);
+    variable_pass(&mut nodes);
     println!("{:#?}", nodes);
     let asm = compile(nodes);
     println!("{asm}");

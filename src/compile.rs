@@ -7,10 +7,18 @@ fn _compile(node: ASTNode) -> String {
         ASTNode::VariableReference(off) => {
             result.push_str(&format!("[rbp-{off}]"));
         }
-        ASTNode::VariableDeclaration(_ty, value) =>
+        ASTNode::VariableDeclaration(_ty, _name, value, offset) =>
         {
-            result.push_str(&format!("sub rsp, {}\n", _ty.number_of_bytes()));
-            result.push_str(&format!("mov {} [rbp-{}], {}\n", _ty.size_name(), _ty.number_of_bytes(), _compile(*value)));
+            result.push_str(&format!("sub rsp, {}\n", _ty.bytes()));
+            if let ASTNode::VariableReference(off) = *value
+            {
+                result.push_str(&format!("mov eax, {} [rbp-{}]\n", _ty.size_name(), off));
+                result.push_str(&format!("mov {} [rbp-{}], eax\n", _ty.size_name(), offset));
+
+            } else
+            {
+                result.push_str(&format!("mov {} [rbp-{}], {}\n", _ty.size_name(), offset, _compile(*value)));
+            }
         }
         ASTNode::FunctionDeclaration(_ty, name, inner) => {
             result.push_str(&format!("{name}:\n")); // Setup a label
@@ -28,6 +36,7 @@ fn _compile(node: ASTNode) -> String {
         }
         ASTNode::IntValue(value) => result.push_str(&format!("{value}")),
         ASTNode::FloatValue(_) => todo!(),
+        ASTNode::StringLiteral(_) => panic!(),
     }
     result
 }

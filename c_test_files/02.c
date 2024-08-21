@@ -1,5 +1,6 @@
 int main()
 {
-    int return_value = 80;
+    int a = 0;
+    int return_value = a;
     return return_value;
 }
