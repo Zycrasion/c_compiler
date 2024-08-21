@@ -18,7 +18,7 @@ pub fn is_str_literal_char(c: char) -> bool {
 }
 
 pub fn is_punc_char(c: char) -> bool {
-    "();,[]{}".contains(c)
+    "();,[]{}=".contains(c)
 }
 
 pub fn tokenise<S>(contents: S) -> Vec<Token>

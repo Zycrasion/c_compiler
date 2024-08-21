@@ -4,6 +4,14 @@ fn _compile(node: ASTNode) -> String {
     let mut result = String::new();
 
     match node {
+        ASTNode::VariableReference(off) => {
+            result.push_str(&format!("[rbp-{off}]"));
+        }
+        ASTNode::VariableDeclaration(_ty, value) =>
+        {
+            result.push_str(&format!("sub rsp, {}\n", _ty.number_of_bytes()));
+            result.push_str(&format!("mov {} [rbp-{}], {}\n", _ty.size_name(), _ty.number_of_bytes(), _compile(*value)));
+        }
         ASTNode::FunctionDeclaration(_ty, name, inner) => {
             result.push_str(&format!("{name}:\n")); // Setup a label
             result.push_str("push rbp\n"); // Save rbp, we are going to override it
@@ -13,7 +21,8 @@ fn _compile(node: ASTNode) -> String {
             result.push_str(&compile_list(inner));
         }
         ASTNode::Return(value) => {
-            result.push_str(&format!("mov eax, {}\n", _compile(*value)));
+            result.push_str(&format!("mov rax, {}\n", _compile(*value)));
+            result.push_str("mov rsp, rbp\n"); // Restore stack pointer
             result.push_str("pop rbp\n"); // Load the original rbp off of the stack
             result.push_str("ret\n"); // Return to previous function
         }

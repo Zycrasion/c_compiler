@@ -4,7 +4,7 @@ use c_compiler::{compile::compile, parse::parse, tokenise::tokenise};
 
 fn main()
 {
-    let tokens = tokenise(include_str!("../c_test_files/01.c"));
+    let tokens = tokenise(include_str!("../c_test_files/02.c"));
     println!("{:#?}", tokens);
     let nodes = parse(tokens);
     println!("{:#?}", nodes);

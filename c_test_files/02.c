@@ -1,5 +1,5 @@
 int main()
 {
-    int return_value = 0;
+    int return_value = 80;
     return return_value;
 }
