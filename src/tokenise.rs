@@ -7,6 +7,7 @@ pub enum Token {
     Float(f32),
     Keyword(String),
     Punctuation(char),
+    MathSymbol(char),
 }
 
 pub fn is_keyword(s: &str) -> bool {
@@ -19,6 +20,10 @@ pub fn is_str_literal_char(c: char) -> bool {
 
 pub fn is_punc_char(c: char) -> bool {
     "();,[]{}=".contains(c)
+}
+
+pub fn is_math_char(c: char) -> bool {
+    "+-".contains(c)
 }
 
 pub fn tokenise<S>(contents: S) -> Vec<Token>
@@ -83,6 +88,15 @@ where
             }
 
             buffer.clear();
+        } else if is_math_char(c) {
+            tokens.push(
+                Token::MathSymbol(c)
+            )
+        } else if c.is_whitespace() {
+            // recognise it but dont do anything
+        } else {
+            eprintln!("Error: Unrecognised character: {}", c);
+            panic!()
         }
     }
 

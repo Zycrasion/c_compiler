@@ -5,3 +5,11 @@ version = 3
 [[package]]
 name = "c_compiler"
 version = "0.1.0"
+dependencies = [
+ "low-level-ir",
+]
+
+[[package]]
+name = "low-level-ir"
+version = "0.1.0"
+source = "git+https://github.com/Zycrasion/low-level-ir#aacf3219b95253bd2a72bd62793c5c6a005ebdae"

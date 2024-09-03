@@ -6,23 +6,6 @@ use crate::tokenise::Token;
 pub enum Type {
     VOID,
     INT,
-    FLOAT,
-}
-
-impl Type {
-    pub fn bytes(&self) -> u32 {
-        match self {
-            Type::VOID => 0,
-            Type::INT | Type::FLOAT => 4,
-        }
-    }
-
-    pub fn size_name(&self) -> &str {
-        match self {
-            Type::VOID => panic!(),
-            Type::INT | Type::FLOAT => "DWORD",
-        }
-    }
 }
 
 impl From<&String> for Type {
@@ -30,7 +13,6 @@ impl From<&String> for Type {
         match value.as_str() {
             "void" => Self::VOID,
             "int" => Self::INT,
-            "float" => Self::FLOAT,
             _ => {
                 eprintln!("Error: {value} is not a valid type");
                 panic!()
@@ -40,14 +22,18 @@ impl From<&String> for Type {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum ASTValue
+{
+    StringLiteral(String),
+    IntValue(i32),    
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum ASTNode {
     FunctionDeclaration(Type, String, Vec<ASTNode>),
-    VariableDeclaration(Type, String, Box<ASTNode>, u32),
-    VariableReference(u32),
-    StringLiteral(String),
+    VariableDeclaration(Type, String, Box<ASTNode>),
     Return(Box<ASTNode>),
-    IntValue(i32),
-    FloatValue(f32),
+    Value(ASTValue)
 }
 
 fn _parse(
@@ -55,13 +41,10 @@ fn _parse(
     tokens: &mut Peekable<Iter<Token>>,
 ) -> Option<ASTNode> {
     match token {
-        Token::StringLiteral(string) => {
-            Some(ASTNode::StringLiteral(string.clone()))
-        }
-        Token::Int(value) => Some(ASTNode::IntValue(*value)),
-        Token::Float(value) => Some(ASTNode::FloatValue(*value)),
+        Token::StringLiteral(string) =>  Some(ASTNode::Value(ASTValue::StringLiteral(string.clone()))),
+        Token::Int(value) => Some(ASTNode::Value(ASTValue::IntValue(*value))),
         Token::Keyword(keyword) => match keyword.as_str() {
-            "int" | "float" | "void" => {
+            "int" | "void" => {
                 // Assume its going to be a function declaration for the time being
 
                 let ty = Type::from(keyword);
@@ -80,7 +63,7 @@ fn _parse(
 
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
 
-                    Some(ASTNode::VariableDeclaration(ty, name.clone(), Box::new(value), u32::MAX))
+                    Some(ASTNode::VariableDeclaration(ty, name.clone(), Box::new(value)))
                 } else if Token::Punctuation('(') == *token {
                     // Function Decleration
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation(')'));
@@ -129,7 +112,8 @@ fn _parse(
         Token::Punctuation(punc) => {
             eprintln!("Unexpected Punctuation: {punc}");
             None
-        }
+        },
+        Token::MathSymbol(_) | Token::Float(_) => panic!()
     }
 }
 
