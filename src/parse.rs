@@ -1,11 +1,34 @@
 use std::{cell::Ref, collections::HashMap, iter::Peekable, slice::Iter, u32};
 
+use low_level_ir::{OperandType, Size};
+
 use crate::tokenise::Token;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     VOID,
     INT,
+}
+
+impl Type
+{
+    pub fn size(&self) -> Size
+    {
+        match self
+        {
+            Type::VOID => panic!(),
+            Type::INT => Size::DoubleWord,
+        }
+    }
+
+    pub fn into_ir(&self) -> OperandType
+    {
+        match self
+        {
+            Type::VOID => OperandType::Undefined,
+            Type::INT => OperandType::Int(self.size()),
+        }
+    }
 }
 
 impl From<&String> for Type {
