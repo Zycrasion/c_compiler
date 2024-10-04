@@ -11,7 +11,7 @@ pub enum Token {
 }
 
 pub fn is_keyword(s: &str) -> bool {
-    ["int", "float", "return"].contains(&s)
+    ["int", "void", "return"].contains(&s)
 }
 
 pub fn is_str_literal_char(c: char) -> bool {

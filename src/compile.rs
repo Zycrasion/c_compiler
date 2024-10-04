@@ -9,7 +9,8 @@ fn compile_value(value : ASTNode) -> Value
         match val
         {
             ASTValue::IntValue(value) => Value::Int(value.to_string()),
-            ASTValue::StringLiteral(value) => Value::VariableReference(value) 
+            ASTValue::StringLiteral(value) => Value::VariableReference(value),
+            ASTValue::FunctionCall(name) => Value::FunctionCall(name),
         }
     } else
     {
@@ -24,6 +25,9 @@ fn compile_node(node : ASTNode) -> Vec<IRStatement>
     
     match node
     {
+        ASTNode::FunctionCall(name) => {
+            statements.push(Operand::FunctionCall(name).ir(OperandType::Undefined));
+        },
         ASTNode::InlineAssembly(assembly) => {
             statements.push(Operand::InlineAssembly(format!("{assembly} ; User Defined Inline Assembly")).ir(OperandType::Undefined));
         }

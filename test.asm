@@ -3,16 +3,17 @@ section .text
 global _start
 _start:
 push RBP
-call main  ; Inline Assembly
-mov EAX, 0
-pop RBP
-ret
+call main
+mov rdi , rax  ; User Defined Inline Assembly
+mov rax , 60  ; User Defined Inline Assembly
+syscall  ; User Defined Inline Assembly
 
 main:
 push RBP
-mov ESI, 0
+mov ESI, 124
 mov EDX, ESI
 mov ESI, 2
+mov ECX, ESI
 mov EAX, EDX
 pop RBP
 ret

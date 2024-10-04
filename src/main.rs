@@ -7,8 +7,9 @@ const C_WRAPPER : &str = include_str!("_wrapper_file.c");
 fn compile_file<S : AsRef<str>>(contents : S) -> String
 {
     let tokens = tokenise(contents.as_ref());
-    println!("{:#?}", tokens);
+    // println!("{:#?}", tokens);
     let nodes = parse(tokens);
+    println!("{nodes:#?}");
     compile(nodes)
 }
 

@@ -1,7 +1,9 @@
 // This is a wrapper for normal C files
 
-int _start()
+void _start()
 {
-    [[call main]]; // Compiler directive for inline assembly
-    return 0;
+    main();
+    [[mov rdi, rax]];
+    [[mov rax, 60]];
+    [[syscall]];
 }

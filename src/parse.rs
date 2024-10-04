@@ -48,12 +48,14 @@ impl From<&String> for Type {
 pub enum ASTValue
 {
     StringLiteral(String),
-    IntValue(i32),    
+    IntValue(i32),
+    FunctionCall(String) 
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ASTNode {
     FunctionDeclaration(Type, String, Vec<ASTNode>),
+    FunctionCall(String),
     VariableDeclaration(Type, String, Box<ASTNode>),
     InlineAssembly(String),
     Return(Box<ASTNode>),
@@ -63,13 +65,29 @@ pub enum ASTNode {
 fn _parse(
     token: &Token,
     tokens: &mut Peekable<Iter<Token>>,
+    as_value : bool
 ) -> Option<ASTNode> {
     match token {
-        Token::StringLiteral(string) =>  Some(ASTNode::Value(ASTValue::StringLiteral(string.clone()))),
+        Token::StringLiteral(string) =>  {
+            if **tokens.peek().unwrap() == Token::Punctuation('(')
+            {
+                assert_eq!(*tokens.next().unwrap(), Token::Punctuation('('));
+                assert_eq!(*tokens.next().unwrap(), Token::Punctuation(')'));
+                if as_value
+                {
+                    return Some(ASTNode::Value(ASTValue::FunctionCall(string.clone())))
+                }
+                assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
+                return Some(ASTNode::FunctionCall(string.clone()));
+            }
+
+            Some(ASTNode::Value(ASTValue::StringLiteral(string.clone())))
+        },
         Token::Int(value) => Some(ASTNode::Value(ASTValue::IntValue(*value))),
         Token::Keyword(keyword) => match keyword.as_str() {
             "int" | "void" => {
                 // Assume its going to be a function declaration for the time being
+                if as_value {panic!()}
 
                 let ty = Type::from(keyword);
                 let name = if let Some(Token::StringLiteral(name)) = tokens.next() {
@@ -83,7 +101,7 @@ fn _parse(
                 if Token::Punctuation('=') == *token {
                     // Variable Declaration
                     let value =
-                        _parse(tokens.next().unwrap(), tokens).unwrap();
+                        _parse(tokens.next().unwrap(), tokens, true).unwrap();
 
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
 
@@ -100,8 +118,7 @@ fn _parse(
                             break;
                         }
 
-                        println!("{tk:#?}");
-                        internal_nodes.push(_parse(tk, tokens).unwrap())
+                        internal_nodes.push(_parse(tk, tokens, false).unwrap())
                     }
 
                     Some(ASTNode::FunctionDeclaration(
@@ -122,6 +139,7 @@ fn _parse(
                         panic!()
                     },
                     tokens,
+                    true
                 )
                 .unwrap();
 
@@ -177,7 +195,7 @@ pub fn parse(tokens: Vec<Token>) -> Vec<ASTNode> {
     let mut tokens = tokens.iter().peekable();
 
     while let Some(token) = tokens.next() {
-        nodes.push(_parse(token, &mut tokens).unwrap())
+        nodes.push(_parse(token, &mut tokens, false).unwrap())
     }
 
     nodes

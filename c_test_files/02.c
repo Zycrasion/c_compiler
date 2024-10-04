@@ -1,6 +1,6 @@
 int main()
 {
-    int a = 0;
+    int a = 124;
     int return_value = a;
     int b = 2;
     int c = b;
