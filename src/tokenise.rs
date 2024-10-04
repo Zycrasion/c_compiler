@@ -94,6 +94,20 @@ where
             )
         } else if c.is_whitespace() {
             // recognise it but dont do anything
+        } else if c == '/'
+        {
+            // Comment
+            if iter.peek().is_some() && *iter.peek().unwrap() == '/'
+            {
+                while iter.next().unwrap() != '\n'
+                {
+
+                }                
+            } else
+            {
+                eprintln!("Unexpected /");
+                panic!()
+            }
         } else {
             eprintln!("Error: Unrecognised character: {}", c);
             panic!()

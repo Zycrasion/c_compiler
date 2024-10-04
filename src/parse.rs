@@ -55,6 +55,7 @@ pub enum ASTValue
 pub enum ASTNode {
     FunctionDeclaration(Type, String, Vec<ASTNode>),
     VariableDeclaration(Type, String, Box<ASTNode>),
+    InlineAssembly(String),
     Return(Box<ASTNode>),
     Value(ASTValue)
 }
@@ -99,6 +100,7 @@ fn _parse(
                             break;
                         }
 
+                        println!("{tk:#?}");
                         internal_nodes.push(_parse(tk, tokens).unwrap())
                     }
 
@@ -133,6 +135,35 @@ fn _parse(
             }
         },
         Token::Punctuation(punc) => {
+            if *punc == '['
+            {
+                if **tokens.peek().unwrap() == Token::Punctuation('[')
+                {
+                    tokens.next();
+                    let mut buffer = String::new();
+
+                    while tokens.peek().is_some() && **tokens.peek().unwrap() != Token::Punctuation(']')
+                    {
+                        let curr = tokens.next().unwrap();
+                        let curr = match curr
+                        {
+                            Token::StringLiteral(a) |
+                            Token::Keyword(a) => a.clone(),
+                            Token::Int(a) => a.to_string(),
+                            Token::Float(a) => a.to_string(),
+                            Token::Punctuation(a) |
+                            Token::MathSymbol(a) => a.to_string()
+                        };
+                        buffer.push_str(&curr);
+                        buffer.push(' ');
+                    }
+                    assert_eq!(*tokens.next().unwrap(), Token::Punctuation(']'));
+                    assert_eq!(*tokens.next().unwrap(), Token::Punctuation(']'));
+                    assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
+
+                    return Some(ASTNode::InlineAssembly(buffer));
+                }
+            }
             eprintln!("Unexpected Punctuation: {punc}");
             None
         },

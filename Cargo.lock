@@ -11,5 +11,5 @@ dependencies = [
 
 [[package]]
 name = "low-level-ir"
-version = "0.2.0"
-source = "git+https://github.com/Zycrasion/low-level-ir#e2f21ae4ec79da0d82bdbfe2c47b85f3bb8e0f98"
+version = "0.3.2"
+source = "git+https://github.com/Zycrasion/low-level-ir#bcac317251ade91113a8e5718f8e7de4f162b60e"

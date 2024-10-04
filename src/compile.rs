@@ -24,37 +24,22 @@ fn compile_node(node : ASTNode) -> Vec<IRStatement>
     
     match node
     {
+        ASTNode::InlineAssembly(assembly) => {
+            statements.push(Operand::InlineAssembly(format!("{assembly} ; User Defined Inline Assembly")).ir(OperandType::Undefined));
+        }
         ASTNode::FunctionDeclaration(ty, name, inner) => {
-            statements.push(IRStatement
-            {
-                op_type: ty.into_ir(),
-                operand: Operand::Label,
-                lhs: Value::StringLiteral(name),
-                rhs: None,
-            });
+            statements.push(Operand::FunctionDecl(name).ir(ty.into_ir()));
 
             statements.append(&mut compile_list(inner));
         },
         ASTNode::VariableDeclaration(ty, name, value) =>
         {
-            statements.push(IRStatement
-            {
-                op_type : ty.into_ir(),
-                operand : Operand::Move,
-                lhs : Value::Variable(ty.size(), name),
-                rhs : Some(compile_value(*value))
-            })
+            statements.push(Operand::Move(Value::Variable(ty.size(), name), compile_value(*value)).ir(ty.into_ir()))
         },
         ASTNode::Return(value) => 
         {
-            statements.push(IRStatement
-            {
-                // TODO: ADD TYPES FOR RETURN
-                op_type: OperandType::Int(Size::DoubleWord),
-                operand: Operand::Return,
-                lhs: compile_value(*value),
-                rhs: None,
-            });
+            let value = compile_value(*value);
+            statements.push(Operand::Return(value).ir(OperandType::Int(Size::DoubleWord) /* value.get_type() */));
         },
         ASTNode::Value(value) => {},
     }
@@ -74,6 +59,11 @@ fn compile_list(ast : Vec<ASTNode>) -> Vec<IRStatement>
     statements
 }
 
+pub fn add_header(s : String) -> String
+{
+    format!("[bits 64]\nsection .text\nglobal _start\n{s}")
+}
+
 pub fn compile(ast : Vec<ASTNode>) -> String
 {
     let mut ir_module = IRModule::new();
@@ -82,6 +72,9 @@ pub fn compile(ast : Vec<ASTNode>) -> String
     {
         ir_module.statements.append(&mut compile_node(node));
     }
+
+    // Make sure variables are automatically dropped after their final use
+    ir_module.optimise();
 
     ir_module.compile()
 }
