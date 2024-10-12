@@ -42,8 +42,14 @@ fn compile_node(node : ASTNode) -> Vec<IRStatement>
         },
         ASTNode::Return(value) => 
         {
-            let value = compile_value(*value);
-            statements.push(Operand::Return(value).ir(OperandType::Int(Size::DoubleWord) /* value.get_type() */));
+            if value.is_none()
+            {
+                statements.push(Operand::Return(Value::Null).ir(OperandType::Undefined));
+            } else
+            {
+                let value = compile_value(*value.unwrap());
+                statements.push(Operand::Return(value).ir(OperandType::Int(Size::DoubleWord) /* value.get_type() */));    
+            }
         },
         ASTNode::Value(value) => {},
     }

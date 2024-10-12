@@ -7,13 +7,18 @@ call main
 mov rdi , rax  ; User Defined Inline Assembly
 mov rax , 60  ; User Defined Inline Assembly
 syscall  ; User Defined Inline Assembly
+pop RBP
+ret
 
+some_func:
+push RBP
+mov EAX, 10
+pop RBP
+ret
 main:
 push RBP
-mov ESI, 124
-mov EDX, ESI
-mov ESI, 2
-mov ECX, ESI
-mov EAX, EDX
+call some_func
+mov ESI, EAX
+mov EAX, ESI
 pop RBP
 ret

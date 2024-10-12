@@ -16,7 +16,7 @@ fn compile_file<S : AsRef<str>>(contents : S) -> String
 fn main()
 {
     let wrapper = compile_file(C_WRAPPER);
-    let asm = compile_file(include_str!("../c_test_files/02.c"));
+    let asm = compile_file(include_str!("../c_test_files/03.c"));
     let asm = format!("{}\n{asm}", add_header(wrapper));
 
     OpenOptions::new().read(true).write(true).truncate(true).create(true).open("test.asm").unwrap().write(asm.as_bytes()).unwrap();

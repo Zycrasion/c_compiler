@@ -58,7 +58,7 @@ pub enum ASTNode {
     FunctionCall(String),
     VariableDeclaration(Type, String, Box<ASTNode>),
     InlineAssembly(String),
-    Return(Box<ASTNode>),
+    Return(Option<Box<ASTNode>>),
     Value(ASTValue)
 }
 
@@ -131,6 +131,12 @@ fn _parse(
                 }
             }
             "return" => {
+                if **tokens.peek().unwrap() == Token::Punctuation(';')
+                {
+                    tokens.next();
+                    return Some(ASTNode::Return(None));
+                }
+                
                 let value = _parse(
                     if let Some(val) = tokens.next() {
                         val
@@ -145,7 +151,7 @@ fn _parse(
 
                 assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
 
-                Some(ASTNode::Return(Box::new(value)))
+                Some(ASTNode::Return(Some(Box::new(value))))
             }
             _ => {
                 eprintln!("Error: Unrecognised Keyword {}", keyword);
