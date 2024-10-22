@@ -6,20 +6,19 @@ mov rax , 60  ; User Defined Inline Assembly
 syscall  ; User Defined Inline Assembly
 pop RBP
 ret
-some_func:
+add_two:
 push RBP
 push RDI
 mov EAX, EDI
+add EAX, 2
+mov EAX, EAX
 pop RDI
 pop RBP
 ret
 main:
 push RBP
-push RSI
-mov EDI, 9
-call some_func
-mov ESI, EAX
-mov EAX, ESI
-pop RSI
+mov EDI, 2
+call add_two
+mov EAX, EAX
 pop RBP
 ret

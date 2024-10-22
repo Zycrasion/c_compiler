@@ -91,7 +91,9 @@ where
         } else if is_math_char(c) {
             tokens.push(
                 Token::MathSymbol(c)
-            )
+            );
+            let len = tokens.len();
+            tokens.swap(len - 2, len - 1);
         } else if c.is_whitespace() {
             // recognise it but dont do anything
         } else if c == '/'
