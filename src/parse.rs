@@ -1,6 +1,6 @@
 use std::{cell::Ref, collections::HashMap, iter::Peekable, slice::Iter, u32};
 
-use low_level_ir::{OperandType, Size};
+use low_level_ir::{OperandType, Size, Value};
 
 use crate::tokenise::Token;
 
@@ -49,13 +49,13 @@ pub enum ASTValue
 {
     StringLiteral(String),
     IntValue(i32),
-    FunctionCall(String) 
+    FunctionCall(String, Vec<ASTNode>) 
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ASTNode {
-    FunctionDeclaration(Type, String, Vec<ASTNode>),
-    FunctionCall(String),
+    FunctionDeclaration(Type, String, Vec<ASTNode>, Vec<(String, Type)>),
+    FunctionCall(String, Vec<ASTNode>),
     VariableDeclaration(Type, String, Box<ASTNode>),
     InlineAssembly(String),
     Return(Option<Box<ASTNode>>),
@@ -72,13 +72,21 @@ fn _parse(
             if **tokens.peek().unwrap() == Token::Punctuation('(')
             {
                 assert_eq!(*tokens.next().unwrap(), Token::Punctuation('('));
+
+                let mut parameters = vec![];
+                while **tokens.peek().expect("UNEXPECTED EOF") != Token::Punctuation(')')
+                {
+                    let value = _parse(tokens.next().unwrap(), tokens, true);
+                    parameters.push(value.unwrap());
+                }
+
                 assert_eq!(*tokens.next().unwrap(), Token::Punctuation(')'));
                 if as_value
                 {
-                    return Some(ASTNode::Value(ASTValue::FunctionCall(string.clone())))
+                    return Some(ASTNode::Value(ASTValue::FunctionCall(string.clone(), parameters)))
                 }
                 assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
-                return Some(ASTNode::FunctionCall(string.clone()));
+                return Some(ASTNode::FunctionCall(string.clone(), parameters));
             }
 
             Some(ASTNode::Value(ASTValue::StringLiteral(string.clone())))
@@ -107,7 +115,29 @@ fn _parse(
 
                     Some(ASTNode::VariableDeclaration(ty, name.clone(), Box::new(value)))
                 } else if Token::Punctuation('(') == *token {
-                    // Function Decleration
+                    // Function Declaration
+                    
+                    // Paramters
+                    let mut parameters = vec![];
+                    while **tokens.peek().expect("UNEXPECTED EOF") != Token::Punctuation(')')
+                    {
+                        let _type = if let Some(Token::Keyword(_type)) = tokens.next() {
+                            Type::from(_type)
+                        } else {
+                            eprintln!("Expected Function Name");
+                            return None;
+                        };
+
+                        let name = if let Some(Token::StringLiteral(name)) = tokens.next() {
+                            name
+                        } else {
+                            eprintln!("Expected Function Name");
+                            return None;
+                        };
+
+                        parameters.push((name.clone(), _type));
+                    }
+
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation(')'));
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation('{'));
 
@@ -125,6 +155,7 @@ fn _parse(
                         ty,
                         name.clone(),
                         internal_nodes,
+                        parameters
                     ))
                 } else {
                     None

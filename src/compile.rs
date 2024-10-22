@@ -1,4 +1,4 @@
-use low_level_ir::{IRModule, IRStatement, Operand, OperandType, Size, Value, ValueCodegen};
+use low_level_ir::{IRModule, Operand, OperandType, Size, Value, ValueCodegen};
 
 use crate::parse::{ASTNode, ASTValue};
 
@@ -9,8 +9,8 @@ fn compile_value(value : ASTNode) -> Value
         match val
         {
             ASTValue::IntValue(value) => Value::Int(value.to_string()),
-            ASTValue::StringLiteral(value) => Value::VariableReference(value),
-            ASTValue::FunctionCall(name) => Value::FunctionCall(name),
+            ASTValue::StringLiteral(value) => Value::Variable(value),
+            ASTValue::FunctionCall(name, values) => Value::FunctionCall(name, values.iter().cloned().map(|v| compile_value(v)).collect()),
         }
     } else
     {
@@ -19,36 +19,34 @@ fn compile_value(value : ASTNode) -> Value
     }
 }
 
-fn compile_node(node : ASTNode) -> Vec<IRStatement>
+fn compile_node(node : ASTNode) -> Vec<Operand>
 {
     let mut statements = vec![];
     
     match node
     {
-        ASTNode::FunctionCall(name) => {
-            statements.push(Operand::FunctionCall(name).ir(OperandType::Undefined));
+        ASTNode::FunctionCall(name, values) => {
+            statements.push(Operand::FunctionCall(name, values.iter().cloned().map(|v| compile_value(v)).collect()));
         },
         ASTNode::InlineAssembly(assembly) => {
-            statements.push(Operand::InlineAssembly(format!("{assembly} ; User Defined Inline Assembly")).ir(OperandType::Undefined));
+            statements.push(Operand::InlineAssembly(format!("{assembly} ; User Defined Inline Assembly")));
         }
-        ASTNode::FunctionDeclaration(ty, name, inner) => {
-            statements.push(Operand::FunctionDecl(name).ir(ty.into_ir()));
-
-            statements.append(&mut compile_list(inner));
+        ASTNode::FunctionDeclaration(ty, name, inner, params) => {
+            statements.push(Operand::FunctionDecl(ty.into_ir(), name, compile_list(inner), params.iter().cloned().map(|v| (v.0, v.1.into_ir())).collect()));
         },
         ASTNode::VariableDeclaration(ty, name, value) =>
         {
-            statements.push(Operand::Move(Value::Variable(ty.size(), name), compile_value(*value)).ir(ty.into_ir()))
+            statements.push(Operand::DeclareVariable(ty.into_ir(), name, compile_value(*value)));
         },
         ASTNode::Return(value) => 
         {
             if value.is_none()
             {
-                statements.push(Operand::Return(Value::Null).ir(OperandType::Undefined));
+                statements.push(Operand::Return(Value::Null));
             } else
             {
                 let value = compile_value(*value.unwrap());
-                statements.push(Operand::Return(value).ir(OperandType::Int(Size::DoubleWord) /* value.get_type() */));    
+                statements.push(Operand::Return(value));    
             }
         },
         ASTNode::Value(value) => {},
@@ -57,7 +55,7 @@ fn compile_node(node : ASTNode) -> Vec<IRStatement>
     statements
 }
 
-fn compile_list(ast : Vec<ASTNode>) -> Vec<IRStatement>
+fn compile_list(ast : Vec<ASTNode>) -> Vec<Operand>
 {
     let mut statements = vec![];
 
@@ -80,7 +78,7 @@ pub fn compile(ast : Vec<ASTNode>) -> String
 
     for node in ast
     {
-        ir_module.statements.append(&mut compile_node(node));
+        ir_module.operands.append(&mut compile_node(node));
     }
 
     // Make sure variables are automatically dropped after their final use

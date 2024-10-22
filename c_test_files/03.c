@@ -1,10 +1,10 @@
-int some_func()
+int some_func(int a)
 {
-    return 10;
+    return a;
 }
 
 int main()
 {
-    int a = some_func();
+    int a = some_func(9);
     return a;
 }
