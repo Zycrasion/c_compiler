@@ -14,7 +14,7 @@ fn parse_file<S : AsRef<str>>(contents : S) -> Vec<ASTNode>
 fn main()
 {
     let mut wrapper = parse_file(C_WRAPPER);
-    let mut main_file = parse_file(include_str!("../c_test_files/03.c"));
+    let mut main_file = parse_file(include_str!("../c_test_files/04.c"));
     wrapper.append(&mut main_file);
     let asm = compile(wrapper);
 

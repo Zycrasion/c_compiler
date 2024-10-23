@@ -4,6 +4,11 @@ use crate::parse::{ASTNode, ASTValue};
 
 fn compile_value(value : ASTNode) -> Value
 {
+    if let ASTNode::Add(lhs, rhs) = value
+    {
+        return Value::Add(Box::new(compile_value(*lhs)), Box::new(compile_value(*rhs)))
+    }
+    
     if let ASTNode::Value(val) = value
     {
         match val
@@ -38,6 +43,10 @@ fn compile_node(node : ASTNode) -> Vec<Operand>
         {
             statements.push(Operand::DeclareVariable(ty.into_ir(), name, compile_value(*value)));
         },
+        ASTNode::Add(lhs, rhs) =>
+        {
+            statements.push(Operand::Add(OperandType::Int(Size::DoubleWord), compile_value(*lhs), compile_value(*rhs)));
+        }
         ASTNode::Return(value) => 
         {
             if value.is_none()
