@@ -7,14 +7,14 @@ const C_WRAPPER : &str = include_str!("_wrapper_file.c");
 fn parse_file<S : AsRef<str>>(contents : S) -> Vec<ASTNode>
 {
     let tokens = tokenise(contents.as_ref());
-    // println!("{:#?}", tokens);
-    parse(tokens)
+    let nodes = parse(tokens);
+    nodes
 }
 
 fn main()
 {
     let mut wrapper = parse_file(C_WRAPPER);
-    let mut main_file = parse_file(include_str!("../c_test_files/04.c"));
+    let mut main_file = parse_file(include_str!("../c_test_files/05.c"));
     wrapper.append(&mut main_file);
     let asm = compile(wrapper);
 

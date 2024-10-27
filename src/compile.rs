@@ -21,6 +21,8 @@ fn compile_value(value : ASTNode) -> Value
             ASTValue::IntValue(value) => Value::Int(value.to_string()),
             ASTValue::StringLiteral(value) => Value::Variable(value),
             ASTValue::FunctionCall(name, values) => Value::FunctionCall(name, values.iter().cloned().map(|v| compile_value(v)).collect()),
+            ASTValue::Deref(name) => Value::Dereference(name),
+            ASTValue::Ref(name) => Value::Reference(name),
         }
     } else
     {

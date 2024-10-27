@@ -10,6 +10,18 @@ pub enum Token {
     MathSymbol(char),
 }
 
+impl Token
+{
+    pub fn extract_string_literal(&self) -> Option<String>
+    {
+        match self
+        {
+            Self::StringLiteral(a) => Some(a.clone()),
+            _ => None
+        }
+    }
+}
+
 pub fn is_keyword(s: &str) -> bool {
     ["int", "void", "return"].contains(&s)
 }
@@ -19,7 +31,8 @@ pub fn is_str_literal_char(c: char) -> bool {
 }
 
 pub fn is_punc_char(c: char) -> bool {
-    "();,[]{}=".contains(c)
+    // TODO: Detect if * is being used as a dereference or a multiply
+    "();,[]{}=&*".contains(c)
 }
 
 pub fn is_math_char(c: char) -> bool {
