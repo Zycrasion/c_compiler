@@ -8,6 +8,11 @@ fn compile_value(value : ASTNode) -> Value
     {
         return Value::Add(Box::new(compile_value(*lhs)), Box::new(compile_value(*rhs)))
     }
+
+    if let ASTNode::Sub(lhs, rhs) = value
+    {
+        return Value::Sub(Box::new(compile_value(*lhs)), Box::new(compile_value(*rhs)))
+    }
     
     if let ASTNode::Value(val) = value
     {
@@ -46,6 +51,10 @@ fn compile_node(node : ASTNode) -> Vec<Operand>
         ASTNode::Add(lhs, rhs) =>
         {
             statements.push(Operand::Add(OperandType::Int(Size::DoubleWord), compile_value(*lhs), compile_value(*rhs)));
+        }
+        ASTNode::Sub(lhs, rhs) =>
+        {
+            statements.push(Operand::Subtract(OperandType::Int(Size::DoubleWord), compile_value(*lhs), compile_value(*rhs)));
         }
         ASTNode::Return(value) => 
         {

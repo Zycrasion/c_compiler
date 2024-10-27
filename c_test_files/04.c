@@ -1,6 +1,7 @@
 int add_two(int a)
 {
-    return a + 2;
+    int b = a + 100;
+    return b - 98;
 }
 
 int main()

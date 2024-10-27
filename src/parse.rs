@@ -57,6 +57,7 @@ pub enum ASTNode {
     FunctionDeclaration(Type, String, Vec<ASTNode>, Vec<(String, Type)>),
     FunctionCall(String, Vec<ASTNode>),
     Add(Box<ASTNode>, Box<ASTNode>),
+    Sub(Box<ASTNode>, Box<ASTNode>),
     VariableDeclaration(Type, String, Box<ASTNode>),
     InlineAssembly(String),
     Return(Option<Box<ASTNode>>),
@@ -228,6 +229,12 @@ fn _parse(
             let rhs = _parse(tokens.next().unwrap(), tokens, true).unwrap();
 
             Some(ASTNode::Add(Box::new(lhs), Box::new(rhs)))
+        }
+        Token::MathSymbol('-') => {
+            let lhs = _parse(tokens.next().unwrap(), tokens, true).unwrap();
+            let rhs = _parse(tokens.next().unwrap(), tokens, true).unwrap();
+
+            Some(ASTNode::Sub(Box::new(lhs), Box::new(rhs)))
         }
         Token::MathSymbol(_) | Token::Float(_) => panic!()
     }
