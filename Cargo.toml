@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-low-level-ir = { git = "https://github.com/Zycrasion/low-level-ir", version = "0.7.5-beta.7" }
+low-level-ir = { git = "https://github.com/Zycrasion/low-level-ir", version = "0.10.0" }
