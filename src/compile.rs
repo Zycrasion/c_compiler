@@ -1,4 +1,4 @@
-use low_level_ir::{IRModule, Operand, OperandType, Size, Value, ValueCodegen};
+use low_level_ir::*;
 
 use crate::parse::{ASTNode, ASTValue};
 
@@ -23,6 +23,7 @@ fn compile_value(value : ASTNode) -> Value
             ASTValue::FunctionCall(name, values) => Value::FunctionCall(name, values.iter().cloned().map(|v| compile_value(v)).collect()),
             ASTValue::Deref(name) => Value::Dereference(name),
             ASTValue::Ref(name) => Value::Reference(name),
+            ASTValue::CharValue(value) => Value::Char(value),
         }
     } else
     {
@@ -94,15 +95,12 @@ pub fn add_header(s : String) -> String
 
 pub fn compile(ast : Vec<ASTNode>) -> String
 {
-    let mut ir_module = IRModule::new();
+    let mut ir_compiler = Compiler::new();
 
     for node in ast
     {
-        ir_module.operands.append(&mut compile_node(node));
+        ir_compiler.operands.append(&mut compile_node(node));
     }
 
-    // Make sure variables are automatically dropped after their final use
-    ir_module.optimise();
-
-    ir_module.compile()
+    ir_compiler.compile()
 }

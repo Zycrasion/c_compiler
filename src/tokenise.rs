@@ -2,9 +2,11 @@ use std::{iter::Peekable, str::Chars};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
-    StringLiteral(String),
     Int(i32),
     Float(f32),
+    CharValue(char),
+    
+    StringLiteral(String),
     Keyword(String),
     Punctuation(char),
     MathSymbol(char),
@@ -23,7 +25,7 @@ impl Token
 }
 
 pub fn is_keyword(s: &str) -> bool {
-    ["int", "void", "return"].contains(&s)
+    ["int", "void", "char", "return"].contains(&s)
 }
 
 pub fn is_str_literal_char(c: char) -> bool {
@@ -109,6 +111,10 @@ where
             tokens.swap(len - 2, len - 1);
         } else if c.is_whitespace() {
             // recognise it but dont do anything
+        } else if c == '\''
+        {
+            tokens.push(Token::CharValue(iter.next().unwrap()));
+            assert!(iter.next().unwrap() == '\'');
         } else if c == '/'
         {
             // Comment

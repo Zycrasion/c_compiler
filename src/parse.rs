@@ -8,6 +8,7 @@ use crate::tokenise::Token;
 pub enum Type {
     VOID,
     INT,
+    CHAR,
     PTR(Box<Type>),
 }
 
@@ -16,6 +17,7 @@ impl Type {
         match self {
             Type::VOID => panic!(),
             Type::INT => Size::DoubleWord,
+            Type::CHAR => Size::Byte,
             Type::PTR(_) => Size::QuadWord,
         }
     }
@@ -23,6 +25,7 @@ impl Type {
     pub fn into_ir(&self) -> OperandType {
         match self {
             Type::VOID => OperandType::Undefined,
+            Type::CHAR => OperandType::Char,
             Type::INT => OperandType::Int(self.size()),
             Type::PTR(a) => OperandType::Pointer(Box::new(a.into_ir())),
 
@@ -35,6 +38,7 @@ impl From<&String> for Type {
         match value.as_str() {
             "void" => Self::VOID,
             "int" => Self::INT,
+            "char" => Self::CHAR,
             _ => {
                 eprintln!("Error: {value} is not a valid type");
                 panic!()
@@ -49,6 +53,7 @@ pub enum ASTValue {
     Ref(String),
     StringLiteral(String),
     IntValue(i32),
+    CharValue(char),
     FunctionCall(String, Vec<ASTNode>),
 }
 
@@ -66,6 +71,9 @@ pub enum ASTNode {
 
 fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> Option<ASTNode> {
     match token {
+        Token::CharValue(val) => {
+            Some(ASTNode::Value(ASTValue::CharValue(*val)))
+        }
         Token::StringLiteral(string) => {
             if **tokens.peek().unwrap() == Token::Punctuation('(') {
                 assert_eq!(*tokens.next().unwrap(), Token::Punctuation('('));
@@ -91,7 +99,7 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
         }
         Token::Int(value) => Some(ASTNode::Value(ASTValue::IntValue(*value))),
         Token::Keyword(keyword) => match keyword.as_str() {
-            "int" | "void" => {
+            "int" | "void" | "char" => {
                 // Assume its going to be a function declaration for the time being
                 if as_value {
                     panic!()
@@ -230,6 +238,7 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                             Token::Int(a) => a.to_string(),
                             Token::Float(a) => a.to_string(),
                             Token::Punctuation(a) | Token::MathSymbol(a) => a.to_string(),
+                            Token::CharValue(a) => a.to_string(),
                         };
                         buffer.push_str(&curr);
                         buffer.push(' ');
