@@ -1,10 +1,10 @@
 int main()
 {
-    char* hello_world = "Hello World!\n";
+    char* hello_world = "Hello World!";
     
-    print(hello_world, 14);
+    println(hello_world, 13);
 
-    print("Hello Universe!\n", 17);
+    println("Hello Universe!", 16);
 
     return 0;
 }

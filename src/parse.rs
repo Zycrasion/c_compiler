@@ -31,6 +31,28 @@ impl Type {
 
         }
     }
+    
+    pub fn read_type(token: &Token, tokens: &mut Peekable<Iter<Token>>) -> Type
+    {
+        let base_type = if let Token::Keyword(value) = token
+        {
+            Self::from(value)
+        } else {
+            eprintln!("Expected a type, got {token} instead");
+            panic!()
+        };
+
+        if let Token::Punctuation(punc) = **tokens.peek().unwrap()
+        {
+            if punc == '*'
+            {
+                tokens.next();
+                return Type::PTR(Box::new(base_type));
+            }
+        }
+
+        base_type
+    }
 }
 
 impl From<&String> for Type {
@@ -112,20 +134,12 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                     panic!()
                 }
 
-                let mut ty = Type::from(keyword);
-                if **tokens.peek().unwrap() == Token::Punctuation('*') {
-                    ty = Type::PTR(Box::new(ty));
-                    tokens.next();
-                }
-                let name = if let Some(Token::StringLiteral(name)) = tokens.next() {
-                    name
-                } else {
-                    eprintln!("Expected Function Name");
-                    return None;
-                };
+                let ty = Type::read_type(token, tokens);
 
-                let token = tokens.next().unwrap();
-                if Token::Punctuation('=') == *token {
+                let name = tokens.next().unwrap().extract_string_literal().unwrap();
+
+                let function_or_variable = tokens.next().unwrap();
+                if Token::Punctuation('=') == *function_or_variable {
                     // Variable Declaration
                     let value = _parse(tokens.next().unwrap(), tokens, true).unwrap();
 
@@ -135,34 +149,17 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                         name.clone(),
                         Box::new(value),
                     ))
-                } else if Token::Punctuation('(') == *token {
+                } else if Token::Punctuation('(') == *function_or_variable {
                     // Function Declaration
 
                     // Paramters
                     let mut parameters = vec![];
                     while **tokens.peek().expect("UNEXPECTED EOF") != Token::Punctuation(')') {
-                        let _type = if let Some(Token::Keyword(_type)) = tokens.next() {
-                            if **tokens.peek().unwrap() == Token::Punctuation('*')
-                            {
-                                tokens.next();
-                                Type::PTR(Box::new(Type::from(_type)))
-                            } else
-                            {
-                                Type::from(_type)
-                            }
-                        } else {
-                            eprintln!("Expected Function Name");
-                            return None;
-                        };
+                        let parameter_type = Type::read_type(tokens.next().unwrap(), tokens);
 
-                        let name = if let Some(Token::StringLiteral(name)) = tokens.next() {
-                            name
-                        } else {
-                            eprintln!("Expected Function Name");
-                            return None;
-                        };
+                        let parameter_name = tokens.next().unwrap().extract_string_literal().unwrap();
 
-                        parameters.push((name.clone(), _type));
+                        parameters.push((parameter_name, parameter_type));
 
                         if **tokens.peek().unwrap() != Token::Punctuation(',')
                         {

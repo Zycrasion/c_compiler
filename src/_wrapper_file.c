@@ -32,6 +32,7 @@ void println(char* ptr, int count)
     print(ptr, count);
     char newline = 10;
     putchar(&newline);
+    return;
 }
 
 // This is a wrapper for normal C files

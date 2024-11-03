@@ -1,4 +1,4 @@
-use std::{iter::Peekable, str::Chars};
+use std::{iter::Peekable, fmt::Display, str::Chars};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
@@ -11,6 +11,13 @@ pub enum Token {
     Keyword(String),
     Punctuation(char),
     MathSymbol(char),
+}
+
+impl Display for Token
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{self:#?}"))
+    }
 }
 
 impl Token
@@ -42,6 +49,7 @@ pub fn is_math_char(c: char) -> bool {
     "+-".contains(c)
 }
 
+/// TODO: structure better
 pub fn tokenise<S>(contents: S) -> Vec<Token>
 where
     S: AsRef<str>,
