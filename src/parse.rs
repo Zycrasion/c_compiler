@@ -52,6 +52,7 @@ pub enum ASTValue {
     Deref(String),
     Ref(String),
     StringLiteral(String),
+    StringValue(String),
     IntValue(i32),
     CharValue(char),
     FunctionCall(String, Vec<ASTNode>),
@@ -74,12 +75,18 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
         Token::CharValue(val) => {
             Some(ASTNode::Value(ASTValue::CharValue(*val)))
         }
+        Token::StringValue(string) => {
+            Some(ASTNode::Value(ASTValue::StringValue(string.clone())))
+        },
         Token::StringLiteral(string) => {
             if **tokens.peek().unwrap() == Token::Punctuation('(') {
                 assert_eq!(*tokens.next().unwrap(), Token::Punctuation('('));
 
                 let mut parameters = vec![];
                 while **tokens.peek().expect("UNEXPECTED EOF") != Token::Punctuation(')') {
+                    if **tokens.peek().unwrap() == Token::Punctuation(',') {
+                        tokens.next();
+                    }
                     let value = _parse(tokens.next().unwrap(), tokens, true);
                     parameters.push(value.unwrap());
                 }
@@ -105,13 +112,11 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                     panic!()
                 }
 
-                let ty = Type::from(keyword);
-                let is_ptr = if **tokens.peek().unwrap() == Token::Punctuation('*') {
+                let mut ty = Type::from(keyword);
+                if **tokens.peek().unwrap() == Token::Punctuation('*') {
+                    ty = Type::PTR(Box::new(ty));
                     tokens.next();
-                    true
-                } else {
-                    false
-                };
+                }
                 let name = if let Some(Token::StringLiteral(name)) = tokens.next() {
                     name
                 } else {
@@ -126,13 +131,7 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
 
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
                     Some(ASTNode::VariableDeclaration(
-                        if is_ptr
-                        {
-                            Type::PTR(Box::new(ty))
-                        } else
-                        {
-                            ty
-                        },
+                        ty,
                         name.clone(),
                         Box::new(value),
                     ))
@@ -143,7 +142,14 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                     let mut parameters = vec![];
                     while **tokens.peek().expect("UNEXPECTED EOF") != Token::Punctuation(')') {
                         let _type = if let Some(Token::Keyword(_type)) = tokens.next() {
-                            Type::from(_type)
+                            if **tokens.peek().unwrap() == Token::Punctuation('*')
+                            {
+                                tokens.next();
+                                Type::PTR(Box::new(Type::from(_type)))
+                            } else
+                            {
+                                Type::from(_type)
+                            }
                         } else {
                             eprintln!("Expected Function Name");
                             return None;
@@ -157,6 +163,12 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                         };
 
                         parameters.push((name.clone(), _type));
+
+                        if **tokens.peek().unwrap() != Token::Punctuation(',')
+                        {
+                            break;
+                        }
+                        tokens.next();
                     }
 
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation(')'));
@@ -234,7 +246,7 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                     {
                         let curr = tokens.next().unwrap();
                         let curr = match curr {
-                            Token::StringLiteral(a) | Token::Keyword(a) => a.clone(),
+                            Token::StringLiteral(a) | Token::Keyword(a) | Token::StringValue(a) => a.clone(),
                             Token::Int(a) => a.to_string(),
                             Token::Float(a) => a.to_string(),
                             Token::Punctuation(a) | Token::MathSymbol(a) => a.to_string(),

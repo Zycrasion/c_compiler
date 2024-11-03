@@ -5,6 +5,7 @@ pub enum Token {
     Int(i32),
     Float(f32),
     CharValue(char),
+    StringValue(String),
     
     StringLiteral(String),
     Keyword(String),
@@ -115,6 +116,15 @@ where
         {
             tokens.push(Token::CharValue(iter.next().unwrap()));
             assert!(iter.next().unwrap() == '\'');
+        } else if c == '\"'
+        {
+            while let Some(c2) = iter.peek() {
+                if *c2 == '\"' {break;}
+                buffer.push(iter.next().unwrap())
+            }
+            assert!(iter.next().unwrap() == '\"');
+            tokens.push(Token::StringValue(buffer));
+            buffer = String::new();
         } else if c == '/'
         {
             // Comment

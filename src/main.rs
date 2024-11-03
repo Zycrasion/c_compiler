@@ -27,6 +27,7 @@ fn main()
         OpenOptions::new().read(true).write(true).truncate(true).create(true).open("test.asm").unwrap().write(asm.as_bytes()).unwrap();
         assemble();
     }
+    println!("Finished Compilation!");
 }
 
 pub fn assemble()

@@ -1,11 +1,10 @@
 int main()
 {
-    char a = 0;
-    char aa = 0;
-    char aaa = 0;
-    char aaaa = 'a';
+    char* hello_world = "Hello World!\n";
+    
+    print(hello_world, 14);
 
-    int* ptr = &aaaa;
+    print("Hello Universe!\n", 17);
 
-    return *ptr;
+    return 0;
 }
