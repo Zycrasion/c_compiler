@@ -35,7 +35,7 @@ pub fn assemble()
     if cfg!(target_os = "linux")
     {
         Command::new("nasm").args(["-f", "elf64", "test.asm", "-o", "test.o"]).spawn().unwrap().wait().unwrap();
-        Command::new("ld").args(["test.o", "-o", "test"]).spawn().unwrap().wait().unwrap();
+        Command::new("ld").args(["test.o", "-lc", "-I", "/lib64/ld-linux-x86-64.so.2", "-o", "test"]).spawn().unwrap().wait().unwrap();
         Command::new("rm").args(["test.o", /*"test.asm"*/]).spawn().unwrap().wait().unwrap();
     }
 }

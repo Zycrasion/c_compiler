@@ -1,4 +1,11 @@
 [[global _start]];
+[[extern malloc]];
+
+int* alloc(int bytes)
+{
+    [[call malloc]];
+    return;
+}
 
 void exit(int exit_code)
 {

@@ -33,7 +33,7 @@ impl Token
 }
 
 pub fn is_keyword(s: &str) -> bool {
-    ["int", "void", "char", "return"].contains(&s)
+    ["int", "void", "char", "return", "if"].contains(&s)
 }
 
 pub fn is_str_literal_char(c: char) -> bool {
@@ -46,7 +46,7 @@ pub fn is_punc_char(c: char) -> bool {
 }
 
 pub fn is_math_char(c: char) -> bool {
-    "+-".contains(c)
+    "+-<>".contains(c)
 }
 
 /// TODO: structure better

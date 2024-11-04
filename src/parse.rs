@@ -87,9 +87,23 @@ pub enum ASTNode {
     Add(Box<ASTNode>, Box<ASTNode>),
     Sub(Box<ASTNode>, Box<ASTNode>),
     VariableDeclaration(Type, String, Box<ASTNode>),
+    SetVariable(ASTValue, Box<ASTNode>),
     InlineAssembly(String),
     Return(Option<Box<ASTNode>>),
     Value(ASTValue),
+}
+
+fn _try_set_value(lhs : &ASTValue, token: &Token, tokens: &mut Peekable<Iter<Token>>) -> Option<ASTNode>
+{
+    if **tokens.peek().unwrap() == Token::Punctuation('=') {
+        assert_eq!(*tokens.next().unwrap(), Token::Punctuation('='));
+        let value = _parse(tokens.next().unwrap(), tokens, true);
+        assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
+
+        return Some(ASTNode::SetVariable(lhs.clone(), Box::new(value.unwrap())));
+    }
+
+    None
 }
 
 fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> Option<ASTNode> {
@@ -101,6 +115,9 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
             Some(ASTNode::Value(ASTValue::StringValue(string.clone())))
         },
         Token::StringLiteral(string) => {
+            if **tokens.peek().unwrap() == Token::Punctuation('=') {
+                return _try_set_value(&ASTValue::StringLiteral(string.clone()), token, tokens)
+            }
             if **tokens.peek().unwrap() == Token::Punctuation('(') {
                 assert_eq!(*tokens.next().unwrap(), Token::Punctuation('('));
 
@@ -219,13 +236,23 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
             }
         },
         Token::Punctuation(punc) => match *punc {
-            '*' => Some(ASTNode::Value(ASTValue::Deref(
-                tokens
-                    .next()
-                    .unwrap()
-                    .extract_string_literal()
-                    .expect("Expected String Literal"),
-            ))),
+            '*' => {
+                let val = ASTValue::Deref(
+                    tokens
+                        .next()
+                        .unwrap()
+                        .extract_string_literal()
+                        .expect("Expected String Literal"),
+                );
+
+                if let Some(set_value) = _try_set_value(&val, token, tokens)
+                {
+                    return Some(set_value);
+                } else
+                {
+                    return Some(ASTNode::Value(val))
+                }
+            },
             '&' => Some(ASTNode::Value(ASTValue::Ref(
                 tokens
                     .next()

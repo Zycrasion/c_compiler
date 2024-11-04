@@ -16,26 +16,31 @@ fn compile_value(value : ASTNode, compiler : &mut Compiler) -> Value
         return Value::Sub(Box::new(compile_value(*lhs, compiler)), Box::new(compile_value(*rhs, compiler)))
     }
     
-    if let ASTNode::Value(val) = value
+    if let ASTNode::Value(value) = value
     {
-        match val
-        {
-            ASTValue::IntValue(value) => Value::Int(value.to_string()),
-            ASTValue::StringLiteral(value) => Value::Variable(value),
-            ASTValue::FunctionCall(name, values) => Value::FunctionCall(name, values.iter().cloned().map(|v| compile_value(v, compiler)).collect()),
-            ASTValue::Deref(name) => Value::Dereference(name),
-            ASTValue::Ref(name) => Value::Reference(name),
-            ASTValue::CharValue(value) => Value::Char(value),
-            ASTValue::StringValue(value) => {
-                let define_name = format!("_SD{}", compiler.string_defines.len());
-                compiler.string_defines.push((define_name.clone(), value));
-                Value::StringLiteral(define_name)
-            }
-        }
+        compile_astvalue(value, compiler)
     } else
     {
         eprintln!("Expected a value; Recieved {value:#?} instead");
         panic!()
+    }
+}
+
+pub fn compile_astvalue(value : ASTValue, compiler : &mut Compiler) -> Value
+{
+    match value
+    {
+        ASTValue::IntValue(value) => Value::Int(value.to_string()),
+        ASTValue::StringLiteral(value) => Value::Variable(value),
+        ASTValue::FunctionCall(name, values) => Value::FunctionCall(name, values.iter().cloned().map(|v| compile_value(v, compiler)).collect()),
+        ASTValue::Deref(name) => Value::Dereference(name),
+        ASTValue::Ref(name) => Value::Reference(name),
+        ASTValue::CharValue(value) => Value::Char(value),
+        ASTValue::StringValue(value) => {
+            let define_name = format!("_SD{}", compiler.string_defines.len());
+            compiler.string_defines.push((define_name.clone(), value));
+            Value::StringLiteral(define_name)
+        }
     }
 }
 
@@ -45,6 +50,10 @@ fn compile_node(node : ASTNode, compiler : &mut Compiler) -> Vec<Operand>
     
     match node
     {
+        ASTNode::SetVariable(lhs, value) =>
+        {
+            statements.push(Operand::SetValue(compile_astvalue(lhs, compiler), compile_value(*value, compiler)));
+        }
         ASTNode::FunctionCall(name, values) => {
             statements.push(Operand::FunctionCall(name, values.iter().cloned().map(|v| compile_value(v, compiler)).collect()));
         },
