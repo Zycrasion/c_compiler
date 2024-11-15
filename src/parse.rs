@@ -1,6 +1,6 @@
 use std::{cell::Ref, collections::HashMap, iter::Peekable, slice::Iter, u32};
 
-use low_level_ir::{OperandType, Size, Value};
+use low_level_ir::{CompareOperation, ComparePredicate, OperandType, Size, Value};
 
 use crate::tokenise::Token;
 
@@ -81,6 +81,14 @@ pub enum ASTValue {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct Comparison
+{
+    pub lhs : Box<ASTNode>,
+    pub rhs : Box<ASTNode>,
+    pub operation : CompareOperation
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum ASTNode {
     FunctionDeclaration(Type, String, Vec<ASTNode>, Vec<(String, Type)>),
     FunctionCall(String, Vec<ASTNode>),
@@ -91,6 +99,7 @@ pub enum ASTNode {
     InlineAssembly(String),
     Return(Option<Box<ASTNode>>),
     Value(ASTValue),
+    If { predicate : Comparison, main_body : Vec<ASTNode>, else_body : Option<Vec<ASTNode>> }
 }
 
 fn _try_set_value(lhs : &ASTValue, token: &Token, tokens: &mut Peekable<Iter<Token>>) -> Option<ASTNode>
@@ -106,6 +115,30 @@ fn _try_set_value(lhs : &ASTValue, token: &Token, tokens: &mut Peekable<Iter<Tok
     None
 }
 
+fn parse_comparison(token: &Token, tokens: &mut Peekable<Iter<Token>>) -> Option<Comparison>
+{
+    match token
+    {
+        Token::MathSymbol(x) if matches!(x.as_str(), ">" | "<" | "==" | ">=" | "<=" | "!=`") => {
+            let lhs = Box::new(_parse(tokens.next().unwrap(), tokens, true).unwrap());
+            let rhs = Box::new(_parse(tokens.next().unwrap(), tokens, true).unwrap());
+            let operation = match x.as_str()
+            {
+                "==" => CompareOperation::EQ,
+                ">" => CompareOperation::GT,
+                "<" => CompareOperation::LT,
+                "<=" => CompareOperation::LTE,
+                ">=" => CompareOperation::GTE,
+                "!=" => CompareOperation::NEQ,
+                _ => panic!()
+            };
+
+            Some(Comparison { lhs, rhs, operation })
+        },
+        _ => None
+    }
+}
+
 fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> Option<ASTNode> {
     match token {
         Token::CharValue(val) => {
@@ -115,7 +148,7 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
             Some(ASTNode::Value(ASTValue::StringValue(string.clone())))
         },
         Token::StringLiteral(string) => {
-            if **tokens.peek().unwrap() == Token::Punctuation('=') {
+            if **tokens.peek().unwrap() == Token::Punctuation('=') && !as_value {
                 return _try_set_value(&ASTValue::StringLiteral(string.clone()), token, tokens)
             }
             if **tokens.peek().unwrap() == Token::Punctuation('(') {
@@ -207,7 +240,27 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                 } else {
                     None
                 }
-            }
+            },
+            "if" => {
+                assert_eq!(*tokens.next().unwrap(), Token::Punctuation('('));
+
+                let predicate = parse_comparison(tokens.next().unwrap(), tokens).unwrap();
+
+                assert_eq!(*tokens.next().unwrap(), Token::Punctuation(')'));
+                assert_eq!(*tokens.next().unwrap(), Token::Punctuation('{'));
+
+                let mut main_body = vec![];
+
+                while let Some(tk) = tokens.next() {
+                    if *tk == Token::Punctuation('}') {
+                        break;
+                    }
+
+                    main_body.push(_parse(tk, tokens, false).unwrap());
+                }
+
+                Some(ASTNode::If { predicate , main_body, else_body: None })
+            },
             "return" => {
                 if **tokens.peek().unwrap() == Token::Punctuation(';') {
                     tokens.next();
@@ -264,23 +317,27 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                 if **tokens.peek().unwrap() == Token::Punctuation('[') {
                     tokens.next();
                     let mut buffer = String::new();
-
                     while tokens.peek().is_some()
-                        && **tokens.peek().unwrap() != Token::Punctuation(']')
+                        && **tokens.peek().unwrap() != Token::Punctuation(';')
                     {
                         let curr = tokens.next().unwrap();
                         let curr = match curr {
-                            Token::StringLiteral(a) | Token::Keyword(a) | Token::StringValue(a) => a.clone(),
+                            Token::StringLiteral(a) | Token::Keyword(a) | Token::StringValue(a) | Token::MathSymbol(a)  => a.clone(),
                             Token::Int(a) => a.to_string(),
                             Token::Float(a) => a.to_string(),
-                            Token::Punctuation(a) | Token::MathSymbol(a) => a.to_string(),
+                            Token::Punctuation(a) => a.to_string(),
                             Token::CharValue(a) => a.to_string(),
                         };
                         buffer.push_str(&curr);
                         buffer.push(' ');
                     }
-                    assert_eq!(*tokens.next().unwrap(), Token::Punctuation(']'));
-                    assert_eq!(*tokens.next().unwrap(), Token::Punctuation(']'));
+
+                    buffer = buffer.trim().to_string();
+                    assert_eq!(buffer.pop().unwrap(), ']');
+                    
+                    buffer = buffer.trim().to_string();
+                    assert_eq!(buffer.pop().unwrap(), ']');
+                    
                     assert_eq!(*tokens.next().unwrap(), Token::Punctuation(';'));
 
                     return Some(ASTNode::InlineAssembly(buffer));
@@ -293,17 +350,17 @@ fn _parse(token: &Token, tokens: &mut Peekable<Iter<Token>>, as_value: bool) -> 
                 None
             }
         },
-        Token::MathSymbol('+') => {
+        Token::MathSymbol(x) if matches!(x.as_str(), "+" | "-") => {
             let lhs = _parse(tokens.next().unwrap(), tokens, true).unwrap();
             let rhs = _parse(tokens.next().unwrap(), tokens, true).unwrap();
 
-            Some(ASTNode::Add(Box::new(lhs), Box::new(rhs)))
-        }
-        Token::MathSymbol('-') => {
-            let lhs = _parse(tokens.next().unwrap(), tokens, true).unwrap();
-            let rhs = _parse(tokens.next().unwrap(), tokens, true).unwrap();
-
-            Some(ASTNode::Sub(Box::new(lhs), Box::new(rhs)))
+            if x == "+"
+            {
+                Some(ASTNode::Add(Box::new(lhs), Box::new(rhs)))
+            } else
+            {
+                Some(ASTNode::Sub(Box::new(lhs), Box::new(rhs)))
+            }
         }
         Token::MathSymbol(_) | Token::Float(_) => panic!(),
     }

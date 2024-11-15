@@ -1,4 +1,4 @@
-use std::{env, fs::{File, OpenOptions}, io::Write, process::Command};
+use std::{env, fs::{File, OpenOptions}, io::{Read, Write}, process::Command};
 
 use c_compiler::{compile::{add_header, compile}, parse::{parse, ASTNode}, tokenise::tokenise};
 
@@ -20,7 +20,9 @@ fn main()
         assemble();
     } else {
         let mut wrapper = parse_file(C_WRAPPER);
-        let mut main_file = parse_file(include_str!("../c_test_files/06.c"));
+        let mut buffer = String::new();
+        File::open(env::args().nth(1).unwrap()).unwrap().read_to_string(&mut buffer).unwrap();
+        let mut main_file = parse_file(buffer);
         wrapper.append(&mut main_file);
         let asm = compile(wrapper);
     
